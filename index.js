@@ -131,7 +131,7 @@ async function fix_bug(auth_token, session_id, buggy_code, start_line_number, bu
 
 async function get_deepprompt_auth(gh_token) {
     try {
-        let response = await fetch(`${DEEPPROMPT_ENDPOINT}/exchange`, {
+        const response = await fetch(`${DEEPPROMPT_ENDPOINT}/exchange`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -142,7 +142,10 @@ async function get_deepprompt_auth(gh_token) {
                 'provider': 'github'
             })
         });
-        let auth_token = await response.json();
+        const auth_token = await response.json();
+        if (auth_token['error']) {
+            core.setFailed(auth_token['error'].message);
+        }
         return auth_token;
     }
     catch (error) {
