@@ -73,8 +73,7 @@ async function post_comment(access_token, repo_url, pr_number, comment)
 
 async function get_response(auth_token, session_id, query)
 {
-    var url = 'https://data-ai-dev.microsoft.com/deeppromptdev/api/v1/query';
-    let response = await fetch(url, {
+    let response = await fetch(`${DEEPPROMPT_ENDPOINT}/query`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -96,9 +95,8 @@ async function get_response(auth_token, session_id, query)
 
 async function fix_bug(auth_token, session_id, buggy_code, start_line_number, buggy_function_call)
 {
-    var url = 'https://data-ai-dev.microsoft.com/deeppromptdev/api/v1/query';
     var intent = 'perf_fix';
-    let response = await fetch(url, {
+    let response = await fetch(`${DEEPPROMPT_ENDPOINT}/query`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
