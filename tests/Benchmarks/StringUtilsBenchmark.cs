@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
+using BenchmarkDotNet.Configs;
 using Microsoft.ApplicationInsights.Kubernetes;
 
 namespace Benchmarks
@@ -22,7 +23,8 @@ namespace Benchmarks
     {
         public static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<StringUtilsBenchmark>();
+            var config = ManualConfig.Create(DefaultConfig.Instance).WithArtifactsPath("artifacts");
+            var summary = BenchmarkRunner.Run<StringUtilsBenchmark>(config);
         }
     }
 }
