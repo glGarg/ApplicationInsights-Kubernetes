@@ -6,13 +6,15 @@ const { Octokit } = require('@octokit/core');
 const { createPullRequest } = require('octokit-plugin-create-pull-request');
 const MyOctokit = Octokit.plugin(createPullRequest);
 
+DEEPPROMPT_ENDPOINT = "https://data-ai.microsoft.com/deepprompt/api/v1"
+
 async function run() {
     try {
         const repo_token = core.getInput('repo-token');
-        const pat_token = core.getInput('token');
+        const gh_token = process.env.GITHUB_TOKEN;
         const comment = core.getInput('comment', { required: false });
 
-        var auth = await get_deepprompt_auth(pat_token);
+        var auth = await get_deepprompt_auth(gh_token);
         var auth_token = auth['access_token'];
         var session_id = auth['session_id'];
 
@@ -129,17 +131,16 @@ async function fix_bug(auth_token, session_id, buggy_code, start_line_number, bu
     return fix;
 }
 
-async function get_deepprompt_auth(access_token) {
+async function get_deepprompt_auth(gh_token) {
     try {
-        url = 'https://data-ai-dev.microsoft.com/deeppromptdev/api/v1/exchange'
-        let response = await fetch(url, {
+        let response = await fetch(`${DEEPPROMPT_ENDPOINT}/exchange`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
-                'token': access_token,
+                'token': gh_token,
                 'provider': 'github'
             })
         });

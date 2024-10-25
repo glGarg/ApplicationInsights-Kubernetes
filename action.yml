@@ -1,5 +1,7 @@
-name: 'Fix Perf Issue'
-description: 'Start PR fixing an issue tagged with [perf]'
+name: "Fix Perf Issue"
+description: "Start PR fixing an issue tagged with [perf]"
 runs:
-  using: 'node16'
-  main: 'index.js'
+  using: "node16"
+  main: "index.js"
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
