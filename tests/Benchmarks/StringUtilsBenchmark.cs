@@ -7,6 +7,7 @@ namespace Benchmarks
 {
     [JsonExporterAttribute.Full]
     [JsonExporterAttribute.FullCompressed]
+    [MemoryDiagnoser]
     public class StringUtilsBenchmark
     {
         [Params(25, 1023, 1024, 1025, 2097152, 3758096384, 3848290697216)]

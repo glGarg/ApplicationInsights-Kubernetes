@@ -30,11 +30,11 @@ jobs:
         run: dotnet restore
       - name: Run Benchmarks
         run: dotnet run -c Release --project tests/Benchmarks/Benchmarks.csproj
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
+      - name: Upload baseline benchmark results
+        uses: actions/upload-artifact@v4
         with:
-          tool: 'benchmarkdotnet'
-          output-file-path: tests/Benchmarks/artifacts/results/Benchmarks.StringUtilsBenchmark-report-full-compressed.json
+          name: baseline-results.json
+          path: artifacts/results/Benchmarks.StringUtilsBenchmark-report-full-compressed.json
   
   add-comment:
     if: github.event.label.name == 'perf'
