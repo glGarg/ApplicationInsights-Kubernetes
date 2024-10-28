@@ -19,13 +19,4 @@ namespace Benchmarks
             return StringUtils.GetReadableSize(Input);
         }
     }
-
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            var config = ManualConfig.Create(DefaultConfig.Instance).WithArtifactsPath("artifacts");
-            var summary = BenchmarkRunner.Run<StringUtilsBenchmark>(config);
-        }
-    }
 }
