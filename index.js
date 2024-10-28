@@ -5,6 +5,8 @@ var base64 = require('js-base64').Base64;
 const { Octokit } = require('@octokit/core');
 const { createPullRequest } = require('octokit-plugin-create-pull-request');
 const MyOctokit = Octokit.plugin(createPullRequest);
+const fs = require('fs');
+const path = require('path');
 
 async function run() {
     try {
@@ -12,9 +14,9 @@ async function run() {
         const pat_token = core.getInput('token');
         const comment = core.getInput('comment', { required: false });
 
-        var auth = await get_deepprompt_auth(pat_token);
-        var auth_token = auth['access_token'];
-        var session_id = auth['session_id'];
+        // var auth = await get_deepprompt_auth(pat_token);
+        // var auth_token = auth['access_token'];
+        // var session_id = auth['session_id'];
 
         if (comment) {
             const pr_body = core.getInput('pr-body');
@@ -32,6 +34,17 @@ async function run() {
             const issue_title = core.getInput('issue-title');
             const issue_body = core.getInput('issue-body');
             const issue_number = core.getInput('issue-number');
+            const parent_symbol = issue_body.split('<!-- ps: ')[1].split(' -->')[0];
+            const child_symbol = issue_body.split('<!-- s: ')[1].split(' -->')[0];
+
+            const parent_class_name = parent_symbol.split('!')[0].split('.').at(-1);
+            const parent_method_name = parent_symbol.split('!')[1];
+            const child_method_name = child_symbol.split('!')[1];
+            console.log(parent_symbol.split('!')[0].split('.'));
+            
+            const path_ending = `${parent_class_name}.cs`;
+            const found_files = searchFiles('./', path_ending);
+            console.log(`Found files for ${path_ending}: ${found_files.join('\n')}`);
 
             const issue_metadata = JSON.parse(issue_body);
             const buggy_file_path = issue_metadata['buggy_file_path'];
@@ -48,6 +61,24 @@ async function run() {
         core.setFailed(error.message);
     }
 }
+
+function searchFiles(dir, fileExtension, files = [])
+{
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries)
+    {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory())
+        {
+            searchFiles(fullPath, fileExtension, files);
+        } else if (entry.isFile() && fullPath.endsWith(fileExtension))
+        {
+            files.push(fullPath);
+        }
+    }
+    return files;
+}
+
 
 async function post_comment(access_token, repo_url, pr_number, comment)
 {
