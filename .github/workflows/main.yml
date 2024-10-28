@@ -33,10 +33,10 @@ jobs:
       - name: Upload baseline benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: baseline-results.json
-          path: artifacts/results/Benchmarks.StringUtilsBenchmark-report-full-compressed.json
-  
-  add-comment:
+          name: baseline-results
+          path: artifacts/results/
+
+  run-perf-fix-benchmark:
     if: github.event.label.name == 'perf'
     runs-on: ubuntu-latest
     permissions:
@@ -46,71 +46,23 @@ jobs:
       actions: read
       security-events: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Fix Perf Issue
-        uses: ./ # Uses an action in the root directory
-        id: fix
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        # Check out from the branch that contains the fix - this will be a SHA or a branch name we get from the fix generation step.
+        ref: 'dev/jabovee/stringutils-fix'
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
         with:
-          issue-title: ${{ github.event.issue.title }}
-          issue-body: ${{ github.event.issue.body }}
-          issue-number: ${{ github.event.issue.number }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          token: ${{ secrets.PAT_TOKEN }}
-          body: |
-            This issue is available for anyone to work on. **Make sure to reference this issue in your pull request.** :sparkles: Thank you for your contribution! :sparkles:
-  respond:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/devbot')
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      contents: write
-      pull-requests: write
-      actions: read
-      security-events: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Get comments
-        id: get-comments
-        uses: actions/github-script@v3
+          dotnet-version: '8.0.x' # Ensure this matches the TargetFramework in your .csproj file
+
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Run Benchmarks
+        run: dotnet run -c Release --project tests/Benchmarks/Benchmarks.csproj
+      - name: Upload baseline benchmark results
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            const { data: comments } = await github.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-            console.log(comments);
-            return { comments };
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Respond To Comment
-        uses: ./
-        id: respond
-        with:
-          repo: ${{ github.event.repository.full_name }}
-          pr-number: ${{ github.event.issue.number }}
-          pr-body: ${{ github.event.issue.body }}
-          comment: ${{ github.event.comment.body }}
-          comment-id: ${{ github.event.comment.id }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          token: ${{ secrets.PAT_TOKEN }}
-  respond-to-code-review:
-    if: github.event_name == 'pull_request_review'
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      contents: write
-      pull-requests: write
-      actions: read
-      security-events: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Respond To Review
-        uses: ./
-        id: respond1
-        with:
-          repo: ${{ github.event.repository.full_name }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          token: ${{ secrets.PAT_TOKEN }}
+          name: fix-results
+          path: artifacts/results/
+  
