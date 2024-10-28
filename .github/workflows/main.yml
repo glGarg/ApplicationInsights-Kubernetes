@@ -48,8 +48,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-        # Check out from the branch that contains the fix - this will be a SHA or a branch name we get from the fix generation step.
-        ref: 'dev/jabovee/stringutils-fix'
+        with:
+          ref: 'dev/jabovee/stringutils-fix'
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
