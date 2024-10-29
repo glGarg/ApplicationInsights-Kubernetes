@@ -2,6 +2,9 @@ const { Octokit } = require("@octokit/rest");
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const { pipeline } = require('stream');
+const { promisify } = require('util');
+const pipelineAsync = promisify(pipeline);
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
