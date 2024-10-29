@@ -78,6 +78,9 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: '16'
+          
+      - name: Install zlib
+        run: npm install zlib
 
       - name: Compare Benchmark Results
         run: node .github/scripts/compare-benchmarks.js
