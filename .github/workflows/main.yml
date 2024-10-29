@@ -24,7 +24,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
         with:
-          dotnet-version: '8.0.x' # Ensure this matches the TargetFramework in your .csproj file
+          dotnet-version: "8.0.x" # Ensure this matches the TargetFramework in your .csproj file
 
       - name: Restore dependencies
         run: dotnet restore
@@ -49,12 +49,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
-          ref: 'dev/jabovee/scrubdata-fix'
+          ref: "dev/jabovee/scrubdata-fix"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
         with:
-          dotnet-version: '8.0.x' # Ensure this matches the TargetFramework in your .csproj file
+          dotnet-version: "8.0.x" # Ensure this matches the TargetFramework in your .csproj file
 
       - name: Restore dependencies
         run: dotnet restore
@@ -68,7 +68,7 @@ jobs:
 
   compare-benchmarks:
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - run-initial-benchmark
       - run-perf-fix-benchmark
     steps:
@@ -77,13 +77,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: "16"
 
       - name: Install unzipper
         run: npm install unzipper
       - name: Install actions core
         run: npm install @actions/core
-  
+
       - name: Compare Benchmark Results
         id: compare
         run: node .github/scripts/compare-benchmarks.js
@@ -93,11 +93,11 @@ jobs:
           BASELINE_ARTIFACT: baseline-results
           FIX_ARTIFACT: fix-results
           FIXED_BRANCH: dev/jabovee/scrubdata-fix
-    
+
   create-pr:
     runs-on: ubuntu-latest
     needs: compare-benchmarks
-    if: steps.compare.outputs.isImprovement == 'true'
+    if: ${{ steps.compare.outputs.isImprovement == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -106,8 +106,8 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'Benchmark improvement detected'
-          branch: 'dev/jabovee/scrubdata-fix'
-          title: 'Benchmark Improvement'
-          body: 'This PR is created automatically because the benchmark results show an improvement.'
-          base: 'develop'
+          commit-message: "Benchmark improvement detected"
+          branch: "dev/jabovee/scrubdata-fix"
+          title: "Benchmark Improvement"
+          body: "This PR is created automatically because the benchmark results show an improvement."
+          base: "develop"
