@@ -29,13 +29,14 @@ async function downloadArtifact(owner, repo, artifactName) {
 
 async function unzipFile(zipFilePath, destFolder) {
     return new Promise((resolve, reject) => {
-        const unzipper = require('unzipper');
-        fs.createReadStream(zipFilePath)
-            .pipe(unzipper.Extract({ path: destFolder }))
-            .on('finish', resolve)
-            .on('error', reject);
-    }
-    );
+        const unzipStream = zlib.createUnzip();
+        const readStream = fs.createReadStream(zipFilePath);
+        const writeStream = fs.createWriteStream(destFolder);
+
+        pipelineAsync(readStream, unzipStream, writeStream)
+            .then(resolve)
+            .catch(reject);
+    });
 }
 
 // Function to read JSON files from a directory
