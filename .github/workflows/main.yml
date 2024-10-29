@@ -97,7 +97,7 @@ jobs:
   create-pr:
     runs-on: ubuntu-latest
     needs: compare-benchmarks
-    if: ${{ steps.compare.outputs.isImprovement == 'true' }}
+    if: needs.compare-benchmarks.outputs.compare.outputs.isImprovement == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
