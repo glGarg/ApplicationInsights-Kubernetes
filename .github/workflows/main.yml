@@ -110,6 +110,4 @@ jobs:
       - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
-          gh pr create --title "Benchmark Improvement" --body "This PR is created automatically because the benchmark results show an improvement." --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
+        run: gh pr create --title "Benchmark Improvement" --body "This PR is created automatically because the benchmark results show an improvement." --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
