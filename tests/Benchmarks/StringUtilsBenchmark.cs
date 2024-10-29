@@ -6,7 +6,6 @@ using Microsoft.ApplicationInsights.Kubernetes;
 namespace Benchmarks
 {
     [JsonExporterAttribute.Full]
-    [JsonExporterAttribute.FullCompressed]
     [MemoryDiagnoser]
     public class StringUtilsBenchmark
     {

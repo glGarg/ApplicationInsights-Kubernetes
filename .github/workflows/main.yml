@@ -86,3 +86,4 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           BASELINE_ARTIFACT: baseline-results
           FIX_ARTIFACT: fix-results
+          FIXED_BRANCH: dev/jabovee/scrubdata-fix

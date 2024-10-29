@@ -27,12 +27,57 @@ async function downloadArtifact(owner, repo, artifactName) {
     return filePath;
 }
 
-function compareResults(oldResults, newResults) {
-    const oldAllocations = JSON.parse(fs.readFileSync(oldResults));
-    const newAllocations = JSON.parse(fs.readFileSync(newResults));
+async function unzipFile(zipFilePath, destFolder) {
+    return new Promise((resolve, reject) => {
+        const unzipper = require('unzipper');
+        fs.createReadStream(zipFilePath)
+            .pipe(unzipper.Extract({ path: destFolder }))
+            .on('finish', resolve)
+            .on('error', reject);
+    }
+    );
+}
 
-    const isFaster = newAllocations.totalAllocations < oldAllocations.totalAllocations;
-    console.log(`Fixed code is ${isFaster ? 'faster' : 'slower'}`);
+// Function to read JSON files from a directory
+function readJsonFilesFromDir(dir) {
+    const files = fs.readdirSync(dir);
+    const jsonFiles = files.filter(file => file.endsWith('.json'));
+    return jsonFiles.map(file => {
+        const filePath = path.join(dir, file);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        return JSON.parse(content);
+    });
+}
+
+// Function to compare benchmarks
+function compareBenchmarks(folder1, folder2) {
+    const reports1 = readJsonFilesFromDir(folder1);
+    const reports2 = readJsonFilesFromDir(folder2);
+
+    let baselineFasterCount = 0;
+    let postfixFasterCount = 0;
+
+    reports1.forEach((report1, index) => {
+        const report2 = reports2[index];
+        if (report1 && report2) {
+            report1.Benchmarks.forEach((benchmark1, i) => {
+                const benchmark2 = report2.Benchmarks[i];
+                if (benchmark1 && benchmark2) {
+                    const bytes1 = benchmark1.Memory.BytesAllocatedPerOperation;
+                    const bytes2 = benchmark2.Memory.BytesAllocatedPerOperation;
+                    if (bytes1 < bytes2) {
+                        baselineFasterCount++;
+                    } else {
+                        postfixFasterCount++;
+                    }
+                }
+            });
+        }
+    });
+
+    console.log(`Baseline folder has ${baselineFasterCount} faster benchmarks.`);
+    console.log(`Postfix folder has ${postfixFasterCount} faster benchmarks.`);
+    console.log(`Baseline is faster: ${baselineFasterCount > postfixFasterCount}`);
 }
 
 async function main() {
@@ -40,6 +85,11 @@ async function main() {
     const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
     const baselineResults = await downloadArtifact(owner, repo, 'baseline-results');
     const postFixResults = await downloadArtifact(owner, repo, 'postfix-results');
+    // Unzip the downloaded files
+    await unzipFile(baselineResults, 'baseline-results');
+    await unzipFile(postFixResults, 'postfix-results');
+
+    compareBenchmarks(baselineResults, postFixResults);
 }
 
 main().catch(err => {

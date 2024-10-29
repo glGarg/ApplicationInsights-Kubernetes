@@ -2,6 +2,8 @@ using BenchmarkDotNet.Attributes;
 using Microsoft.ApplicationInsights.Kubernetes;
 
 namespace Benchmarks;
+
+[JsonExporterAttribute.Full]
 [MemoryDiagnoser]
 public class ScrubberBenchmark
 {
