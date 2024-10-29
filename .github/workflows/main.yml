@@ -81,8 +81,11 @@ jobs:
 
       - name: Install unzipper
         run: npm install unzipper
-
+      - name: Install actions core
+        run: npm install @actions/core
+  
       - name: Compare Benchmark Results
+        id: compare
         run: node .github/scripts/compare-benchmarks.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -90,3 +93,21 @@ jobs:
           BASELINE_ARTIFACT: baseline-results
           FIX_ARTIFACT: fix-results
           FIXED_BRANCH: dev/jabovee/scrubdata-fix
+    
+  create-pr:
+    runs-on: ubuntu-latest
+    needs: compare-benchmarks
+    if: steps.compare.outputs.isImprovement == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'Benchmark improvement detected'
+          branch: 'dev/jabovee/scrubdata-fix'
+          title: 'Benchmark Improvement'
+          body: 'This PR is created automatically because the benchmark results show an improvement.'
+          base: 'develop'

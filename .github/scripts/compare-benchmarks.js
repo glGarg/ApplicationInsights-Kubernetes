@@ -1,6 +1,7 @@
 const { Octokit } = require("@octokit/rest");
 const fs = require('fs');
 const path = require('path');
+const core = require('@actions/core');
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
@@ -50,9 +51,9 @@ function readJsonFilesFromDir(dir) {
 }
 
 // Function to compare benchmarks
-function compareBenchmarks(folder1, folder2) {
-    const reports1 = readJsonFilesFromDir(folder1);
-    const reports2 = readJsonFilesFromDir(folder2);
+function isPostFixImproved(baseline, postfix) {
+    const reports1 = readJsonFilesFromDir(baseline);
+    const reports2 = readJsonFilesFromDir(postfix);
 
     let baselineFasterCount = 0;
     let postfixFasterCount = 0;
@@ -75,9 +76,7 @@ function compareBenchmarks(folder1, folder2) {
         }
     });
 
-    console.log(`Baseline folder has ${baselineFasterCount} faster benchmarks.`);
-    console.log(`Postfix folder has ${postfixFasterCount} faster benchmarks.`);
-    console.log(`Baseline is faster: ${baselineFasterCount > postfixFasterCount}`);
+    return baselineFasterCount > postfixFasterCount;
 }
 
 async function main() {
@@ -91,7 +90,9 @@ async function main() {
     await unzipFile(baselineResults, baselineDir);
     await unzipFile(postFixResults, pistFixDir);
 
-    compareBenchmarks(baselineDir, pistFixDir);
+    const isImprovement = isPostFixImproved(baselineDir, pistFixDir);
+
+    core.setOutput('isImprovement', isImprovement);
 }
 
 main().catch(err => {
