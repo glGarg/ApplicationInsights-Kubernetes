@@ -79,8 +79,8 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Install zlib
-        run: npm install zlib
+      - name: Install unzipper
+        run: npm install unzipper
 
       - name: Compare Benchmark Results
         run: node .github/scripts/compare-benchmarks.js

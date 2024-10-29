@@ -1,10 +1,6 @@
 const { Octokit } = require("@octokit/rest");
 const fs = require('fs');
 const path = require('path');
-const zlib = require('zlib');
-const { pipeline } = require('stream');
-const { promisify } = require('util');
-const pipelineAsync = promisify(pipeline);
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
@@ -33,14 +29,13 @@ async function downloadArtifact(owner, repo, artifactName) {
 
 async function unzipFile(zipFilePath, destFolder) {
     return new Promise((resolve, reject) => {
-        const unzipStream = zlib.createUnzip();
-        const readStream = fs.createReadStream(zipFilePath);
-        const writeStream = fs.createWriteStream(destFolder);
-
-        pipelineAsync(readStream, unzipStream, writeStream)
-            .then(resolve)
-            .catch(reject);
-    });
+        const unzipper = require('unzipper');
+        fs.createReadStream(zipFilePath)
+            .pipe(unzipper.Extract({ path: destFolder }))
+            .on('finish', resolve)
+            .on('error', reject);
+    }
+    );
 }
 
 // Function to read JSON files from a directory
