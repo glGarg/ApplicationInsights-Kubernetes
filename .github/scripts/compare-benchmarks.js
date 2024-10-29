@@ -76,7 +76,7 @@ function isPostFixImproved(baseline, postfix) {
         }
     });
 
-    return baselineFasterCount > postfixFasterCount;
+    return baselineFasterCount < postfixFasterCount;
 }
 
 async function main() {
@@ -91,6 +91,7 @@ async function main() {
     await unzipFile(postFixResults, pistFixDir);
 
     const isImprovement = isPostFixImproved(baselineDir, pistFixDir);
+    console.log(`Is improvement: ${isImprovement}`);
 
     core.setOutput('isImprovement', isImprovement);
 }
