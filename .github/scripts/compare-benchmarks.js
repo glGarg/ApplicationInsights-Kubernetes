@@ -86,8 +86,8 @@ async function main() {
     const baselineResults = await downloadArtifact(owner, repo, 'baseline-results');
     const postFixResults = await downloadArtifact(owner, repo, 'postfix-results');
     // Unzip the downloaded files
-    await unzipFile(baselineResults, 'baseline-results');
-    await unzipFile(postFixResults, 'postfix-results');
+    await unzipFile(baselineResults, './baseline-results');
+    await unzipFile(postFixResults, './postfix-results');
 
     compareBenchmarks(baselineResults, postFixResults);
 }
