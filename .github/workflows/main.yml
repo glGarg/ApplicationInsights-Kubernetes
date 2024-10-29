@@ -104,12 +104,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh
+
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Benchmark improvement detected"
-          branch: "dev/jabovee/scrubdata-fix"
-          title: "Benchmark Improvement"
-          body: "This PR is created automatically because the benchmark results show an improvement."
-          base: "develop"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+          gh pr create --title "Benchmark Improvement" --body "This PR is created automatically because the benchmark results show an improvement." --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
