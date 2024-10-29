@@ -32,7 +32,7 @@ async function unzipFile(zipFilePath, destFolder) {
         const unzipper = require('unzipper');
         fs.createReadStream(zipFilePath)
             .pipe(unzipper.Extract({ path: destFolder }))
-            .on('finish', resolve)
+            .on('finish', resolve(destFolder))
             .on('error', reject);
     }
     );
@@ -86,10 +86,10 @@ async function main() {
     const baselineResults = await downloadArtifact(owner, repo, 'baseline-results');
     const postFixResults = await downloadArtifact(owner, repo, 'postfix-results');
     // Unzip the downloaded files
-    await unzipFile(baselineResults, './baseline-results');
-    await unzipFile(postFixResults, './postfix-results');
+    const baselineDir = await unzipFile(baselineResults, 'baseline-results');
+    const pistFixDir = await unzipFile(postFixResults, 'postfix-results');
 
-    compareBenchmarks(baselineResults, postFixResults);
+    compareBenchmarks(baselineDir, pistFixDir);
 }
 
 main().catch(err => {
