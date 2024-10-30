@@ -113,4 +113,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "${{ needs.compare-benchmarks.outputs.benchmarkResultsMD }}" > benchmark-results.md 
-          gh pr create --title PERF: Title goes here" --body-path benchmark-results.md --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
+          gh pr create --title "PERF: Title goes here" --body-path benchmark-results.md --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
