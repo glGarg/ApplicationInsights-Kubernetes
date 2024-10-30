@@ -54,6 +54,15 @@ function readJsonFilesFromDir(dir) {
     });
 }
 
+function getFasterValue(baseline, postfix) {
+    if (baseline < postfix) {
+        return 'Baseline';
+    } else if (baseline > postfix) {
+        return 'Postfix';
+    }
+    return 'Equal';
+}
+
 // Function to compare benchmarks
 function isPostFixImproved(baseline, postfix) {
     const reports1 = readJsonFilesFromDir(baseline);
@@ -69,14 +78,15 @@ function isPostFixImproved(baseline, postfix) {
                     const bytes2 = benchmark2.Memory.BytesAllocatedPerOperation;
                     if (bytes1 < bytes2) {
                         baselineFasterCount++;
-                    } else {
+                    } else if (bytes1 > bytes2) {
                         postfixFasterCount++;
                     }
+
                     benchmarkResults.push({
                         name: benchmark1.FullName,
                         baseline: bytes1,
                         postfix: bytes2,
-                        faster: bytes1 < bytes2 ? 'Baseline' : 'Postfix'
+                        faster: getFasterValue(bytes1, bytes2)
                     });
                 }
             });
