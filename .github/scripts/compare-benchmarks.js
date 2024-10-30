@@ -65,28 +65,28 @@ function getFasterValue(baseline, postfix) {
 
 // Function to compare benchmarks
 function isPostFixImproved(baseline, postfix) {
-    const reports1 = readJsonFilesFromDir(baseline);
-    const reports2 = readJsonFilesFromDir(postfix);
+    const baselineReports = readJsonFilesFromDir(baseline);
+    const postFixReports = readJsonFilesFromDir(postfix);
 
-    reports1.forEach((report1, index) => {
-        const report2 = reports2[index];
-        if (report1 && report2) {
-            report1.Benchmarks.forEach((benchmark1, i) => {
-                const benchmark2 = report2.Benchmarks[i];
-                if (benchmark1 && benchmark2) {
-                    const bytes1 = benchmark1.Memory.BytesAllocatedPerOperation;
-                    const bytes2 = benchmark2.Memory.BytesAllocatedPerOperation;
-                    if (bytes1 < bytes2) {
+    baselineReports.forEach((baselineReport, index) => {
+        const postFixReport = postFixReports[index];
+        if (baselineReport && postFixReport) {
+            baselineReport.Benchmarks.forEach((baselineBenchmark, i) => {
+                const postFixBenchmark = postFixReport.Benchmarks[i];
+                if (baselineBenchmark && postFixBenchmark) {
+                    const baselineBytes = baselineBenchmark.Memory.BytesAllocatedPerOperation;
+                    const postfixBytes = postFixBenchmark.Memory.BytesAllocatedPerOperation;
+                    if (baselineBytes < postfixBytes) {
                         baselineFasterCount++;
-                    } else if (bytes1 > bytes2) {
+                    } else if (baselineBytes > postfixBytes) {
                         postfixFasterCount++;
                     }
 
                     benchmarkResults.push({
-                        name: benchmark1.FullName,
-                        baseline: bytes1,
-                        postfix: bytes2,
-                        faster: getFasterValue(bytes1, bytes2)
+                        name: baselineBenchmark.FullName,
+                        baseline: baselineBytes,
+                        postfix: postfixBytes,
+                        faster: getFasterValue(baselineBytes, postfixBytes)
                     });
                 }
             });
