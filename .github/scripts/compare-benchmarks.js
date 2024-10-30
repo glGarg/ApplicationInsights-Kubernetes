@@ -113,11 +113,11 @@ async function main() {
     const postFixResults = await downloadArtifact(owner, repo, 'postfix-results');
     // Unzip the downloaded files
     const baselineDir = path.join(__dirname, 'baseline-results');
-    const pistFixDir = path.join(__dirname, 'postfix-results');
+    const postFixDir = path.join(__dirname, 'postfix-results');
     await unzipFile(baselineResults, baselineDir);
-    await unzipFile(postFixResults, pistFixDir);
+    await unzipFile(postFixResults, postFixDir);
 
-    const isImprovement = isPostFixImproved(baselineDir, pistFixDir);
+    const isImprovement = isPostFixImproved(baselineDir, postFixDir);
     console.log(`Is improvement: ${isImprovement}`);
 
     const markdownTable = generateMarkdownTable(benchmarkResults);
