@@ -111,4 +111,4 @@ jobs:
       - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr create --title ${{ github.event.title }} --body ${{ needs.compare-benchmarks.outputs.benchmarkResultsMD }} --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
+        run: gh pr create --title ${{ github.event.title }} --body "${{ needs.compare-benchmarks.outputs.benchmarkResultsMD }}" --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
