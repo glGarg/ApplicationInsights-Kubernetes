@@ -5,6 +5,10 @@ const core = require('@actions/core');
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
+let baselineFasterCount = 0;
+let postfixFasterCount = 0;
+let benchmarkResults = [];
+
 async function downloadArtifact(owner, repo, artifactName) {
     const artifacts = await octokit.actions.listArtifactsForRepo({
         owner,
@@ -55,9 +59,6 @@ function isPostFixImproved(baseline, postfix) {
     const reports1 = readJsonFilesFromDir(baseline);
     const reports2 = readJsonFilesFromDir(postfix);
 
-    let baselineFasterCount = 0;
-    let postfixFasterCount = 0;
-
     reports1.forEach((report1, index) => {
         const report2 = reports2[index];
         if (report1 && report2) {
@@ -71,6 +72,12 @@ function isPostFixImproved(baseline, postfix) {
                     } else {
                         postfixFasterCount++;
                     }
+                    benchmarkResults.push({
+                        name: benchmark1.Name,
+                        baseline: bytes1,
+                        postfix: bytes2,
+                        faster: bytes1 < bytes2 ? 'Baseline' : 'Postfix'
+                    });
                 }
             });
         }
@@ -78,6 +85,16 @@ function isPostFixImproved(baseline, postfix) {
 
     return baselineFasterCount < postfixFasterCount;
 }
+
+function generateMarkdownTable(results) {
+    let table = '| Benchmark | Baseline Bytes | Postfix Bytes | Faster |\n';
+    table += '|-----------|----------------|---------------|--------|\n';
+    results.forEach(result => {
+        table += `| ${result.name} | ${result.baseline} | ${result.postfix} | ${result.faster} |\n`;
+    });
+    return table;
+}
+
 
 async function main() {
     const owner = process.env.GITHUB_REPOSITORY.split('/')[0];
@@ -93,7 +110,11 @@ async function main() {
     const isImprovement = isPostFixImproved(baselineDir, pistFixDir);
     console.log(`Is improvement: ${isImprovement}`);
 
+    const markdownTable = generateMarkdownTable(benchmarkResults);
+    console.log(markdownTable);
+
     core.setOutput('isImprovement', isImprovement);
+    core.setOutput('benchmarkResultsMD', markdownTable);
 }
 
 main().catch(err => {
