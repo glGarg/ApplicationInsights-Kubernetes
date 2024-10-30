@@ -73,7 +73,7 @@ function isPostFixImproved(baseline, postfix) {
                         postfixFasterCount++;
                     }
                     benchmarkResults.push({
-                        name: benchmark1.Name,
+                        name: benchmark1.FullName,
                         baseline: bytes1,
                         postfix: bytes2,
                         faster: bytes1 < bytes2 ? 'Baseline' : 'Postfix'
