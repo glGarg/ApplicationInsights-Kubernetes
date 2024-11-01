@@ -58,6 +58,11 @@ async function run() {
             const buggy_range = localization[2];
             const buggy_file_data = localization[3];
 
+            // DeepPrompt response
+            const start_line_number = parseInt(buggy_range[0]);
+            const end_line_number = parseInt(buggy_range[1]);
+            const deepprompt_response = await get_deepprompt_response(auth_token, session_id, buggy_file_data, start_line_number, buggy_method_name);
+
             // const issue_metadata = JSON.parse(issue_body);
             // const buggy_file_path = issue_metadata['buggy_file_path'];
             // const repo_url = issue_metadata['repo_url'];
@@ -112,27 +117,40 @@ async function post_comment(access_token, repo_url, pr_number, comment)
     console.log(data);
 }
 
-async function get_response(auth_token, session_id, query)
-{
-    var url = `${DEEPPROMPT_ENDPOINT}/query`;
-    let response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'DeepPrompt-Version': 'v1',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${auth_token}`,
-            'DeepPrompt-Session-ID': session_id
-        },
-        body: JSON.stringify({
-            'query': query,
-        })
-    });
-    let data = await response.json();
-    let response_text = data['response_text'];
-    console.log("---------------");
-    console.log(data);
-    return response_text;
+async function get_deepprompt_response(auth_token, session_id, buggy_file_data, start_line_number, buggy_method_name)
+{   
+    const url = `${DEEPPROMPT_ENDPOINT}/query`;
+    const intent = 'perf_fix';
+    const prompt_strategy = 'instructive';
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'DeepPrompt-Version': 'v1',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${auth_token}`,
+                'DeepPrompt-Session-ID': session_id
+            },
+            body: JSON.stringify({
+                'query': 'Can you fix the above perf issue?',
+                'intent': intent,
+                'context': {
+                    'source_code': buggy_file_data,
+                    'buggy_function_call': buggy_method_name,
+                    'start_line_number': start_line_number.toString(),
+                    'prompt_strategy': prompt_strategy
+                }
+            })
+        });
+        const response_json = await response.json();
+        if (response_json["error"]) {
+            core.setFailed(`The DeepPrompt service returned an error: ${response_json["error"].message}`);
+        }
+        return response_json["response_text"];
+    } catch (error) {
+        core.setFailed(`An error occurred while trying to make a DeepPrompt request: ${error.message}`);
+    }
 }
 
 async function fix_bug(auth_token, session_id, buggy_code, start_line_number, buggy_function_call)
