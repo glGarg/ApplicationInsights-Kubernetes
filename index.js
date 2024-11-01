@@ -63,6 +63,14 @@ async function run() {
             const end_line_number = parseInt(buggy_range[1]);
             const deepprompt_response = await get_deepprompt_response(auth_token, session_id, buggy_file_data, start_line_number, buggy_method_name);
 
+            // Clean up response
+            const code_text = deepprompt_response.match(/```([^`]*)```/)[1];
+            const code_to_remove = `csharp\n\n`;
+            const clean_code_text = code_text.substring(code_text.indexOf(code_to_remove) + code_to_remove.length);
+
+            // Fixed file
+            const fixed_file = fix_file(buggy_file_data, start_line_number, end_line_number, clean_code_text)
+
             // const issue_metadata = JSON.parse(issue_body);
             // const buggy_file_path = issue_metadata['buggy_file_path'];
             // const repo_url = issue_metadata['repo_url'];
@@ -153,41 +161,30 @@ async function get_deepprompt_response(auth_token, session_id, buggy_file_data, 
     }
 }
 
-async function fix_bug(auth_token, session_id, buggy_code, start_line_number, buggy_function_call)
-{
-    var url = `${DEEPPROMPT_ENDPOINT}/query`;
-    var intent = 'perf_fix';
-    let response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'DeepPrompt-Version': 'v1',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${auth_token}`,
-            'DeepPrompt-Session-ID': session_id
-        },
-        body: JSON.stringify({
-            'query': 'Can you fix the above perf issue?',
-            'intent': intent,
-            'context': {
-                'source_code': buggy_code,
-                'buggy_function_call': buggy_function_call,
-                'start_line_number': start_line_number.toString(),
-                'prompt_strategy': 'instructive'
+function fix_file(buggy_file_data, start_line_number, end_line_number, clean_code_text){
+    try {
+        const lines = buggy_file_data.split('\n');
+        const start_line = lines[start_line_number - 1];
+        const leading_whitespace = start_line.match(/^\s*/);
+        const count = leading_whitespace ? leading_whitespace[0].length : 0;
+        const clean_code_text_lines = clean_code_text.split('\n');
+
+        let indentation = "";
+        for (let index = 0; index < count; index++) {
+            indentation += " ";
+        }
+
+        for (let index = 0; index < clean_code_text_lines.length; index++) {
+            if (clean_code_text_lines[index] !== "") {
+                clean_code_text_lines[index] = indentation + clean_code_text_lines[index];
             }
-        })
-    });
-    let data = await response.json();
-    let fix = data['response_text'].slice(0, -3).split('```csharp\n\n')[1];
-
-    let end_line_number = find_end_of_function(buggy_code, start_line_number);
-    var lines = buggy_code.split('\n');
-    var fixed_lines = lines.slice(0, start_line_number - 1).concat(fix.split('\n')).concat(lines.slice(end_line_number + 1));
-    fix = fixed_lines.join('\n');
-
-    console.log("---------------");
-    console.log(fix);
-    return fix;
+        }
+        const formatted_clean_code_text = clean_code_text_lines.join("\n");
+        const fixed_lines = lines.slice(0, start_line_number - 1).concat(formatted_clean_code_text.split('\n')).concat(lines.slice(end_line_number));
+        return fixed_lines.join('\n');
+    } catch(error) {
+        core.setFailed(`An error occured while trying to fix the file: ${error.message}`);
+    }
 }
 
 async function get_deepprompt_auth(pat_token) {
