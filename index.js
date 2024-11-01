@@ -34,31 +34,40 @@ async function run() {
             const response = await get_response(auth_token, session_id, query);
             post_comment(repo_token, repo_url, pr_number, response);
         } else {
+            // Issue metadata
             const issue_title = core.getInput('issue-title');
             const issue_body = core.getInput('issue-body');
             const issue_number = core.getInput('issue-number');
+
+            // Symbols
             const parent_symbol = issue_body.split('<!-- ps: ')[1].split(' -->')[0];
             const child_symbol = issue_body.split('<!-- s: ')[1].split(' -->')[0];
-
             const parent_class_name = parent_symbol.split('!')[0].split('.').at(-1);
             const parent_method_name = parent_symbol.split('!')[1];
             const child_method_name = child_symbol.split('!')[1];
-            console.log(parent_symbol.split('!')[0].split('.'));
-            
+
+            // Files
             const path_ending = `${parent_class_name}.cs`;
             const found_files = searchFiles('./', path_ending);
             console.log(`Found files for ${path_ending}: ${found_files.join('\n')}`);
 
-            const issue_metadata = JSON.parse(issue_body);
-            const buggy_file_path = issue_metadata['buggy_file_path'];
-            const repo_url = issue_metadata['repo_url'];
-            var file = await get_file(repo_token, repo_url, buggy_file_path);
+            // Localization
+            const localization = await get_localization_values(found_files, parent_class_name, parent_method_name, child_method_name);
+            const buggy_file_path = localization[0];
+            const buggy_method_name = localization[1];
+            const buggy_range = localization[2];
+            const buggy_file_data = localization[3];
 
-            var fixed_file = await fix_bug(auth_token, session_id, file, issue_metadata['start_line_number'], issue_metadata['bottleneck_call']);
+            // const issue_metadata = JSON.parse(issue_body);
+            // const buggy_file_path = issue_metadata['buggy_file_path'];
+            // const repo_url = issue_metadata['repo_url'];
+            // var file = await get_file(repo_token, repo_url, buggy_file_path);
+
+            // var fixed_file = await fix_bug(auth_token, session_id, file, issue_metadata['start_line_number'], issue_metadata['bottleneck_call']);
             
-            console.log(fixed_file);
+            // console.log(fixed_file);
             
-            create_pr(repo_token, repo_url, buggy_file_path, issue_title, issue_number, file, fixed_file, session_id);
+            // create_pr(repo_token, repo_url, buggy_file_path, issue_title, issue_number, file, fixed_file, session_id);
         }
     } catch (error) {
         core.setFailed(error.message);
@@ -259,6 +268,96 @@ async function create_pr(access_token, repo_url, buggy_file_path, issue_title, i
             },
         ],
     });
+}
+
+async function get_localization_values(found_files, parent_class_name, parent_method_name, child_method_name) {
+    for (let i = 0; i < found_files.length; i++) {
+        const file = found_files[i];
+        const file_data = fs.readFileSync(file, 'utf8');
+        const buggy_range = get_buggy_range(
+            file_data,
+            parent_class_name,
+            parent_method_name,
+            child_method_name
+        );
+        if (buggy_range.length > 0) {
+            return [file.toString(), child_method_name, buggy_range, file_data];
+        }
+    }
+
+    for (let i = 0; i < found_files.length; i++) {
+        const file = found_files[i];
+        const file_data = fs.readFileSync(file, 'utf8');
+        const buggy_range = get_buggy_range(
+            file_data,
+            parent_class_name,
+            parent_method_name,
+            child_method_name,
+            true
+        );
+        if (buggy_range.length > 0) {
+            return [file.toString(), "", buggy_range, file_data];
+        }
+    }
+
+    return ["", "", [], ""];
+}
+
+function get_buggy_range(file_data, parent_class_name, parent_method_name, child_method_name, ignore_bottleneck = false) {
+    const parent_function_signature = parent_method_name !== "ctor" ? `${parent_method_name}(` : `${parent_class_name}(`;
+    const child_function_signature = `${child_method_name}(`;
+    
+    const possible_starts = find_all_occurrences(file_data, parent_function_signature);
+    for (let i = 0; i < possible_starts.length; i++) {
+        const start = possible_starts[i];
+        const end = get_balanced_end_index(file_data.substring(start));
+
+        const file_data_block = file_data.substring(start, start + end);
+        if (file_data_block.includes(child_function_signature)) {
+            const bug_starts = find_all_occurrences(file_data_block, child_function_signature);
+            if (bug_starts.length > 0) {
+                const start_line_number = file_data.substring(0, start).split("\n").length;
+                const end_line_number = file_data.substring(0, start + end).split("\n").length;
+                return [start_line_number, end_line_number];
+            }
+        }
+
+        if (ignore_bottleneck) {
+            const start_line_number = file_data.substring(0, start).split("\n").length;
+            const end_line_number = file_data.substring(0, start + end).split("\n").length;
+            return [start_line_number, end_line_number];
+        }
+    }
+
+    return [];
+}
+
+function find_all_occurrences(data, function_signature) {
+    let result = [];
+    let position = data.indexOf(function_signature);
+    while (position !== -1) {
+        result.push(position);
+        position = data.indexOf(function_signature, position + 1);
+    }
+    return result;
+}
+
+function get_balanced_end_index(data) {
+  let open_count = 0;
+  let index = 0;
+  while (index < data.length) {
+    const ch = data[index];
+    if (ch === "{") {
+      open_count += 1;
+    } else if (ch === "}") {
+      open_count -= 1;
+      if (open_count === 0) {
+        return index;
+      }
+    }
+    index += 1;
+  }
+  return 0;
 }
 
 run();
