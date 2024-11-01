@@ -24,19 +24,19 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
         with:
-          dotnet-version: '8.0.x' # Ensure this matches the TargetFramework in your .csproj file
+          dotnet-version: "8.0.x" # Ensure this matches the TargetFramework in your .csproj file
 
       - name: Restore dependencies
         run: dotnet restore
       - name: Run Benchmarks
         run: dotnet run -c Release --project tests/Benchmarks/Benchmarks.csproj
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
+      - name: Upload baseline benchmark results
+        uses: actions/upload-artifact@v4
         with:
-          tool: 'benchmarkdotnet'
-          output-file-path: ApplicationInsights-Kubernetes/ApplicationInsights-Kubernetes/tests/Benchmarks/BenchmarkDotNet.Artifacts\results\Benchmarks.StringUtilsBenchmark-report-full-compressed.json
-  
-  add-comment:
+          name: baseline-results
+          path: artifacts/results/
+
+  run-perf-fix-benchmark:
     if: github.event.label.name == 'perf'
     runs-on: ubuntu-latest
     permissions:
@@ -46,71 +46,71 @@ jobs:
       actions: read
       security-events: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Fix Perf Issue
-        uses: ./ # Uses an action in the root directory
-        id: fix
+      - name: Checkout repository
+        uses: actions/checkout@v2
         with:
-          issue-title: ${{ github.event.issue.title }}
-          issue-body: ${{ github.event.issue.body }}
-          issue-number: ${{ github.event.issue.number }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          token: ${{ secrets.PAT_TOKEN }}
-          body: |
-            This issue is available for anyone to work on. **Make sure to reference this issue in your pull request.** :sparkles: Thank you for your contribution! :sparkles:
-  respond:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/devbot')
+          ref: "dev/jabovee/scrubdata-fix"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: "8.0.x" # Ensure this matches the TargetFramework in your .csproj file
+
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Run Benchmarks
+        run: dotnet run -c Release --project tests/Benchmarks/Benchmarks.csproj
+      - name: Upload baseline benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: postfix-results
+          path: artifacts/results/
+
+  compare-benchmarks:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      contents: write
-      pull-requests: write
-      actions: read
-      security-events: write
+    outputs:
+      isImprovement: ${{ steps.compare.outputs.isImprovement }}
+      benchmarkResultsMD: ${{ steps.compare.outputs.benchmarkResultsMD }}
+    needs:
+      - run-initial-benchmark
+      - run-perf-fix-benchmark
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Get comments
-        id: get-comments
-        uses: actions/github-script@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
-          script: |
-            const { data: comments } = await github.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-            console.log(comments);
-            return { comments };
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Respond To Comment
-        uses: ./
-        id: respond
-        with:
-          repo: ${{ github.event.repository.full_name }}
-          pr-number: ${{ github.event.issue.number }}
-          pr-body: ${{ github.event.issue.body }}
-          comment: ${{ github.event.comment.body }}
-          comment-id: ${{ github.event.comment.id }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          token: ${{ secrets.PAT_TOKEN }}
-  respond-to-code-review:
-    if: github.event_name == 'pull_request_review'
+          node-version: "16"
+
+      - name: Install unzipper
+        run: npm install unzipper
+      - name: Install actions core
+        run: npm install @actions/core
+
+      - name: Compare Benchmark Results
+        id: compare
+        run: node .github/scripts/compare-benchmarks.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BASELINE_ARTIFACT: baseline-results
+          FIX_ARTIFACT: fix-results
+          FIXED_BRANCH: dev/jabovee/scrubdata-fix
+
+  create-pr:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      contents: write
-      pull-requests: write
-      actions: read
-      security-events: write
+    needs: compare-benchmarks
+    if: needs.compare-benchmarks.outputs.isImprovement == 'true'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Respond To Review
-        uses: ./
-        id: respond1
-        with:
-          repo: ${{ github.event.repository.full_name }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          token: ${{ secrets.PAT_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh
+
+      - name: Create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ needs.compare-benchmarks.outputs.benchmarkResultsMD }}" > benchmark-results.md 
+          gh pr create --title "PERF: Title goes here" --body-file benchmark-results.md --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
