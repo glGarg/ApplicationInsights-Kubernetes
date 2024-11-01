@@ -13,12 +13,13 @@ DEEPPROMPT_ENDPOINT = "https://data-ai.microsoft.com/deepprompt/api/v1";
 async function run() {
     try {
         const repo_token = core.getInput('repo-token');
-        const pat_token = core.getInput('token');
         const comment = core.getInput('comment', { required: false });
 
-        // var auth = await get_deepprompt_auth(pat_token);
-        // var auth_token = auth['access_token'];
-        // var session_id = auth['session_id'];
+        // DeepPrompt Auth
+        const pat_token = core.getInput('token');
+        const auth = await get_deepprompt_auth(pat_token);
+        const auth_token = auth['access_token'];
+        const session_id = auth['session_id'];
 
         if (comment) {
             const pr_body = core.getInput('pr-body');
@@ -162,25 +163,28 @@ async function fix_bug(auth_token, session_id, buggy_code, start_line_number, bu
     return fix;
 }
 
-async function get_deepprompt_auth(access_token) {
+async function get_deepprompt_auth(pat_token) {
     try {
-        url = `${DEEPPROMPT_ENDPOINT}/exchange`;
-        let response = await fetch(url, {
+        const url = `${DEEPPROMPT_ENDPOINT}/exchange`;
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
-                'token': access_token,
+                'token': pat_token,
                 'provider': 'github'
             })
         });
-        let auth_token = await response.json();
+        const auth_token = await response.json();
+        if (auth_token["error"]) {
+            core.setFailed(`The DeepPrompt service returned an error: ${auth_token["error"].message}`);
+        }
         return auth_token;
     }
     catch (error) {
-        core.setFailed(error.message);
+        core.setFailed(`An error occurred while trying to make a DeepPrompt request: ${error.message}`);
     }
 }
 
