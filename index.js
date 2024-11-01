@@ -8,6 +8,8 @@ const MyOctokit = Octokit.plugin(createPullRequest);
 const fs = require('fs');
 const path = require('path');
 
+DEEPPROMPT_ENDPOINT = "https://data-ai.microsoft.com/deepprompt/api/v1";
+
 async function run() {
     try {
         const repo_token = core.getInput('repo-token');
@@ -102,7 +104,7 @@ async function post_comment(access_token, repo_url, pr_number, comment)
 
 async function get_response(auth_token, session_id, query)
 {
-    var url = 'https://data-ai-dev.microsoft.com/deeppromptdev/api/v1/query';
+    var url = `${DEEPPROMPT_ENDPOINT}/query`;
     let response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -125,7 +127,7 @@ async function get_response(auth_token, session_id, query)
 
 async function fix_bug(auth_token, session_id, buggy_code, start_line_number, buggy_function_call)
 {
-    var url = 'https://data-ai-dev.microsoft.com/deeppromptdev/api/v1/query';
+    var url = `${DEEPPROMPT_ENDPOINT}/query`;
     var intent = 'perf_fix';
     let response = await fetch(url, {
         method: 'POST',
@@ -162,7 +164,7 @@ async function fix_bug(auth_token, session_id, buggy_code, start_line_number, bu
 
 async function get_deepprompt_auth(access_token) {
     try {
-        url = 'https://data-ai-dev.microsoft.com/deeppromptdev/api/v1/exchange'
+        url = `${DEEPPROMPT_ENDPOINT}/exchange`;
         let response = await fetch(url, {
             method: 'POST',
             headers: {
