@@ -70,17 +70,7 @@ async function run() {
 
             // Fixed file
             const fixed_file = fix_file(buggy_file_data, start_line_number, end_line_number, clean_code_text)
-
-            // const issue_metadata = JSON.parse(issue_body);
-            // const buggy_file_path = issue_metadata['buggy_file_path'];
-            // const repo_url = issue_metadata['repo_url'];
-            // var file = await get_file(repo_token, repo_url, buggy_file_path);
-
-            // var fixed_file = await fix_bug(auth_token, session_id, file, issue_metadata['start_line_number'], issue_metadata['bottleneck_call']);
-            
-            // console.log(fixed_file);
-            
-            // create_pr(repo_token, repo_url, buggy_file_path, issue_title, issue_number, file, fixed_file, session_id);
+            console.log(fixed_file);
         }
     } catch (error) {
         core.setFailed(error.message);
