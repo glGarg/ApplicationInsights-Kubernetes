@@ -2,9 +2,7 @@ const core = require('@actions/core');
 const github = require('@actions/github');
 const fetch = require('node-fetch');
 var base64 = require('js-base64').Base64;
-const { Octokit } = require('@octokit/core');
-const { createPullRequest } = require('octokit-plugin-create-pull-request');
-const MyOctokit = Octokit.plugin(createPullRequest);
+const {Octokit} = require("@octokit/rest");
 const fs = require('fs');
 const path = require('path');
 
@@ -12,22 +10,23 @@ DEEPPROMPT_ENDPOINT = "https://data-ai.microsoft.com/deepprompt/api/v1";
 
 async function run() {
     try {
+        // Repo metadata
+        const repo = core.getInput('repo');
         const repo_token = core.getInput('repo-token');
-        const comment = core.getInput('comment', { required: false });
+        const repo_url = `https://github.com/${repo}`;
 
         // DeepPrompt Auth
-        const pat_token = core.getInput('token');
+        const pat_token = core.getInput('pat-token');
         const auth = await get_deepprompt_auth(pat_token);
         const auth_token = auth['access_token'];
         const session_id = auth['session_id'];
 
+        const comment = core.getInput('comment', { required: false });
         if (comment) {
             const pr_body = core.getInput('pr-body');
             const comment_id = core.getInput('comment-id');
             console.log(comment_id);
             const pr_number = core.getInput('pr-number');
-            const repo = core.getInput('repo');
-            const repo_url = `https://github.com/${repo}`;
             const session_id = pr_body.split('Session ID: ')[1].split('.')[0];
 
             const query = comment.split('/devbot ')[1];
@@ -71,6 +70,11 @@ async function run() {
             // Fixed file
             const fixed_file = fix_file(buggy_file_data, start_line_number, end_line_number, clean_code_text)
             console.log(fixed_file);
+
+            // Create branch
+            const octokit = new Octokit({ auth: repo_token });
+            const branch = await create_branch(octokit, repo_url);
+            console.log(branch);
         }
     } catch (error) {
         core.setFailed(error.message);
@@ -243,6 +247,42 @@ function find_end_of_function(code, start_line_number) {
         i++;
     }
     return i;
+}
+
+async function create_branch(octokit, repo_url) {
+    const user = repo_url.split('/')[3];
+    const repo = repo_url.split('/')[4];
+    const branch_name = 'test-branch-' + (new Date()).getTime();
+
+    let develop_sha;
+    try {
+        const response = await octokit.git.getRef({
+            owner: user,
+            repo: repo,
+            ref: 'heads/develop'
+        });
+        if (response.error) {
+            core.setFailed(`The GitHub API returned an error: ${response.error.message}`);
+        }
+        develop_sha = response.data.object.sha;
+    } catch (error) {
+        core.setFailed(`An error occurred while trying to get the ref SHA: ${error.message}`);
+    }
+
+    try {
+        const response = await octokit.rest.git.createRef({
+            owner: user,
+            repo: repo,
+            ref: `refs/heads/${branch_name}`,
+            sha: develop_sha
+        });
+        if (response.error) {
+            core.setFailed(`The GitHub API returned an error: ${response.error.message}`);
+        }
+        return response.data;
+    } catch (error) {
+        core.setFailed(`An error occurred while trying to create a new branch: ${error.message}`);
+    }
 }
 
 async function create_pr(access_token, repo_url, buggy_file_path, issue_title, issue_number, file, fixed_file, session_id) {
