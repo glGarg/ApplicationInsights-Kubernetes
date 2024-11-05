@@ -17,13 +17,15 @@ namespace Microsoft.ApplicationInsights.Kubernetes
         public static string ScrubData(string data, char replacementChar)
         {
             Regex rx = new Regex(EmailRegExPattern);
+            StringBuilder builder = new StringBuilder(data);
+
             foreach (Match match in rx.Matches(data))
             {
                 string replacementString = new string(replacementChar, match.Value.Length);
-                data = data.Replace(match.Value, replacementString);
+                builder.Remove(match.Index, match.Length).Insert(match.Index, replacementString);
             }
 
-            return data;
+            return builder.ToString();
         }
     }
 }
