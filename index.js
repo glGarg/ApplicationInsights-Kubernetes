@@ -78,6 +78,7 @@ async function run() {
             await update_branch(octokit, repo_url, buggy_file_path, fixed_file, branch.object.sha, branch_name, issue_title);
             const prTitle = `PERF: Improve Performance for ${child_method_name} in ${parent_class_name}`;
             core.setOutput('pr-title', prTitle);
+            console.log(`PR Title: ${prTitle}`);
         }
     } catch (error) {
         core.setFailed(error.message);
