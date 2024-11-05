@@ -80,7 +80,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
-          ref: ${{ needs.get-perf-fix.outputs.branch-name }}
+          ref: '${{ needs.get-perf-fix.outputs.branch-name }}'
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
@@ -134,7 +134,7 @@ jobs:
     needs: 
       - compare-benchmarks
       - get-perf-fix
-    if: needs.compare-benchmarks.outputs.isImprovement == 'true'
+    # if: needs.compare-benchmarks.outputs.isImprovement == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

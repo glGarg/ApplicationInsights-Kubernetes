@@ -330,6 +330,7 @@ async function update_branch(octokit, repo_url, buggy_file_path, fixed_file, com
         });
 
         core.setOutput('branch-name', branch_name);
+        console.log(`Branch ${branch_name} has been updated.`);
     } catch (error) {
         core.setFailed(`An error occurred while trying to update the branch: ${error.message}`);
     }
