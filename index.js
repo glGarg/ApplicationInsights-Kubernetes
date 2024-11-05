@@ -76,6 +76,7 @@ async function run() {
             const branch_name = 'test-branch-' + (new Date()).getTime();
             const branch = await create_branch(octokit, repo_url, branch_name);
             await update_branch(octokit, repo_url, buggy_file_path, fixed_file, branch.object.sha, branch_name, issue_title);
+            core.setOutput('pr-title', `Auto-generated PR fixing issue #${issue_number}. Session ID: ${session_id}.`);
         }
     } catch (error) {
         core.setFailed(error.message);
@@ -329,7 +330,6 @@ async function update_branch(octokit, repo_url, buggy_file_path, fixed_file, com
         });
 
         core.setOutput('branch-name', branch_name);
-        core.setOutput('pr-title', `Auto-generated PR fixing issue #${issue_number}. Session ID: ${session_id}.`);
     } catch (error) {
         core.setFailed(`An error occurred while trying to update the branch: ${error.message}`);
     }
