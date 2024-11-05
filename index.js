@@ -76,7 +76,8 @@ async function run() {
             const branch_name = 'test-branch-' + (new Date()).getTime();
             const branch = await create_branch(octokit, repo_url, branch_name);
             await update_branch(octokit, repo_url, buggy_file_path, fixed_file, branch.object.sha, branch_name, issue_title);
-            core.setOutput('pr-title', `Auto-generated PR fixing issue #${issue_number}. Session ID: ${session_id}.`);
+            const prTitle = `PERF: Improve Performance for ${child_method_name} in ${parent_class_name}`;
+            core.setOutput('pr-title', prTitle);
         }
     } catch (error) {
         core.setFailed(error.message);
