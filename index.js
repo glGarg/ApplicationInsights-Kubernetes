@@ -68,7 +68,7 @@ async function run() {
             const clean_code_text = code_text.substring(code_text.indexOf(code_to_remove) + code_to_remove.length);
 
             // Fixed file
-            const fixed_file = `// ---------------------------------------------------------------------------\n\n// <copyright file="Scrubber.cs" company="Microsoft">\n//     Copyright (c) Microsoft Corporation.  All rights reserved.\n// </copyright>\n// ---------------------------------------------------------------------------\n\nnamespace Microsoft.ApplicationInsights.Kubernetes\n{\n    using System;\n    using System.Collections.Generic;\n    using System.Linq;\n    using System.Text.RegularExpressions;\n\n    public class Scrubber\n    {\n        public const string EmailRegExPattern = @"[a-zA-Z0-9!#$+\-^_~]+(?:\.[a-zA-Z0-9!#$+\-^_~]+)*@(?:[a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,6}";\n        public static string ScrubData(string data, char replacementChar)\n        {\n            Regex rx = new Regex(EmailRegExPattern);\n            return rx.Replace(data, m => new string(replacementChar, m.Value.Length));\n        }\n    }\n}`;
+            const fixed_file = fix_file(buggy_file_data, start_line_number, end_line_number, clean_code_text);
             console.log(fixed_file);
 
             // Create branch
