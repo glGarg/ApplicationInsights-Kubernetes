@@ -2,7 +2,7 @@ const core = require('@actions/core');
 const github = require('@actions/github');
 const fetch = require('node-fetch');
 var base64 = require('js-base64').Base64;
-const {Octokit} = require("@octokit/rest");
+const { Octokit } = require("@octokit/rest");
 const fs = require('fs');
 const path = require('path');
 
@@ -82,17 +82,13 @@ async function run() {
     }
 }
 
-function searchFiles(dir, fileExtension, files = [])
-{
+function searchFiles(dir, fileExtension, files = []) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries)
-    {
+    for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory())
-        {
+        if (entry.isDirectory()) {
             searchFiles(fullPath, fileExtension, files);
-        } else if (entry.isFile() && fullPath.endsWith(fileExtension))
-        {
+        } else if (entry.isFile() && fullPath.endsWith(fileExtension)) {
             files.push(fullPath);
         }
     }
@@ -100,8 +96,7 @@ function searchFiles(dir, fileExtension, files = [])
 }
 
 
-async function post_comment(access_token, repo_url, pr_number, comment)
-{
+async function post_comment(access_token, repo_url, pr_number, comment) {
     var owner = repo_url.split('/')[3];
     var repo_name = repo_url.split('/')[4];
     var url = `https://api.github.com/repos/${owner}/${repo_name}/issues/${pr_number}/comments`;
@@ -111,7 +106,7 @@ async function post_comment(access_token, repo_url, pr_number, comment)
             'Content-Type': 'application/json',
             'Accept': 'application/vnd.github.v3+json',
             'Authorization': `token ${access_token}`
-        }, 
+        },
         body: JSON.stringify({
             'body': comment
         })
@@ -120,8 +115,7 @@ async function post_comment(access_token, repo_url, pr_number, comment)
     console.log(data);
 }
 
-async function get_deepprompt_response(auth_token, session_id, buggy_file_data, start_line_number, buggy_method_name)
-{   
+async function get_deepprompt_response(auth_token, session_id, buggy_file_data, start_line_number, buggy_method_name) {
     const url = `${DEEPPROMPT_ENDPOINT}/query`;
     const intent = 'perf_fix';
     const prompt_strategy = 'instructive';
@@ -156,7 +150,7 @@ async function get_deepprompt_response(auth_token, session_id, buggy_file_data, 
     }
 }
 
-function fix_file(buggy_file_data, start_line_number, end_line_number, clean_code_text){
+function fix_file(buggy_file_data, start_line_number, end_line_number, clean_code_text) {
     try {
         const lines = buggy_file_data.split('\n');
         const start_line = lines[start_line_number - 1];
@@ -177,7 +171,7 @@ function fix_file(buggy_file_data, start_line_number, end_line_number, clean_cod
         const formatted_clean_code_text = clean_code_text_lines.join("\n");
         const fixed_lines = lines.slice(0, start_line_number - 1).concat(formatted_clean_code_text.split('\n')).concat(lines.slice(end_line_number));
         return fixed_lines.join('\n');
-    } catch(error) {
+    } catch (error) {
         core.setFailed(`An error occured while trying to fix the file: ${error.message}`);
     }
 }
@@ -333,6 +327,9 @@ async function update_branch(octokit, repo_url, buggy_file_path, fixed_file, com
             ref: `heads/${branch_name}`,
             sha: new_commit_data.sha
         });
+
+        core.setOutput('branch-name', branch_name);
+        core.setOutput('pr-title', `Auto-generated PR fixing issue #${issue_number}. Session ID: ${session_id}.`);
     } catch (error) {
         core.setFailed(`An error occurred while trying to update the branch: ${error.message}`);
     }
@@ -404,7 +401,7 @@ async function get_localization_values(found_files, parent_class_name, parent_me
 function get_buggy_range(file_data, parent_class_name, parent_method_name, child_method_name, ignore_bottleneck = false) {
     const parent_function_signature = parent_method_name !== "ctor" ? `${parent_method_name}(` : `${parent_class_name}(`;
     const child_function_signature = `${child_method_name}(`;
-    
+
     const possible_starts = find_all_occurrences(file_data, parent_function_signature);
     for (let i = 0; i < possible_starts.length; i++) {
         const start = possible_starts[i];
@@ -441,21 +438,21 @@ function find_all_occurrences(data, function_signature) {
 }
 
 function get_balanced_end_index(data) {
-  let open_count = 0;
-  let index = 0;
-  while (index < data.length) {
-    const ch = data[index];
-    if (ch === "{") {
-      open_count += 1;
-    } else if (ch === "}") {
-      open_count -= 1;
-      if (open_count === 0) {
-        return index;
-      }
+    let open_count = 0;
+    let index = 0;
+    while (index < data.length) {
+        const ch = data[index];
+        if (ch === "{") {
+            open_count += 1;
+        } else if (ch === "}") {
+            open_count -= 1;
+            if (open_count === 0) {
+                return index;
+            }
+        }
+        index += 1;
     }
-    index += 1;
-  }
-  return 0;
+    return 0;
 }
 
 run();
