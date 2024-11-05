@@ -43,6 +43,7 @@ async function run() {
             const child_symbol = issue_body.split('<!-- s: ')[1].split(' -->')[0];
             const parent_class_name = parent_symbol.split('!')[0].split('.').at(-1);
             const parent_method_name = parent_symbol.split('!')[1];
+            const child_class_name = child_symbol.split('!')[0].split('.').at(-1);
             const child_method_name = child_symbol.split('!')[1];
 
             // Files
@@ -76,7 +77,7 @@ async function run() {
             const branch_name = 'test-branch-' + (new Date()).getTime();
             const branch = await create_branch(octokit, repo_url, branch_name);
             await update_branch(octokit, repo_url, buggy_file_path, fixed_file, branch.object.sha, branch_name, issue_title);
-            const prTitle = `PERF: Improve Performance for ${child_method_name} in ${parent_class_name}`;
+            const prTitle = `PERF: Improve Performance for ${child_class_name}.${child_method_name} in ${parent_class_name}.${parent_method_name}`;
             core.setOutput('pr-title', prTitle);
             console.log(`PR Title: ${prTitle}`);
         }
