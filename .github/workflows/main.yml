@@ -80,7 +80,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
-          ref: ${{ needs.get-perf-fix.outputs.branch-name }}
+          ref: '${{ needs.get-perf-fix.outputs.branch-name }}'
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
