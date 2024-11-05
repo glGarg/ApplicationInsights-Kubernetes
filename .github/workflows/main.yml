@@ -8,8 +8,36 @@ on:
   pull_request_review:
     types: [submitted]
 jobs:
+  get-perf-fix:
+    outputs:
+      pr-title: ${{ steps.fix.outputs.pr-title }}
+      branch-name: ${{ steps.fix.outputs.branch-name }}
+    if: github.event.label.name == 'perf'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+      pull-requests: write
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Fix Perf Issue
+        uses: ./ # Uses an action in the root directory
+        id: fix
+        with:
+          repo: ${{ github.event.repository.full_name }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          pat-token: ${{ secrets.PAT_TOKEN }}
+          issue-title: ${{ github.event.issue.title }}
+          issue-body: ${{ github.event.issue.body }}
+          issue-number: ${{ github.event.issue.number }}
+
   run-initial-benchmark:
     if: github.event.label.name == 'perf'
+    needs:
+      - get-perf-fix
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -36,30 +64,6 @@ jobs:
           name: baseline-results
           path: artifacts/results/
 
-  get-perf-fix:
-    if: github.event.label.name == 'perf'
-    runs-on: ubuntu-latest
-    needs:
-      - run-initial-benchmark
-    permissions:
-      issues: write
-      contents: write
-      pull-requests: write
-      actions: read
-      security-events: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Fix Perf Issue
-        uses: ./ # Uses an action in the root directory
-        id: fix
-        with:
-          repo: ${{ github.event.repository.full_name }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          pat-token: ${{ secrets.PAT_TOKEN }}
-          issue-title: ${{ github.event.issue.title }}
-          issue-body: ${{ github.event.issue.body }}
-          issue-number: ${{ github.event.issue.number }}
 
   run-perf-fix-benchmark:
     if: github.event.label.name == 'perf'
@@ -76,7 +80,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
-          ref: "dev/jabovee/scrubdata-fix"
+          ref: ${{ needs.get-perf-fix.outputs.branch-name }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
@@ -101,6 +105,7 @@ jobs:
     needs:
       - run-initial-benchmark
       - run-perf-fix-benchmark
+      - get-perf-fix
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -122,11 +127,13 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           BASELINE_ARTIFACT: baseline-results
           FIX_ARTIFACT: fix-results
-          FIXED_BRANCH: dev/jabovee/scrubdata-fix
+          FIXED_BRANCH: ${{ needs.get-perf-fix.outputs.branch-name }}
 
   create-pr:
     runs-on: ubuntu-latest
-    needs: compare-benchmarks
+    needs: 
+      - compare-benchmarks
+      - get-perf-fix
     if: needs.compare-benchmarks.outputs.isImprovement == 'true'
     steps:
       - name: Checkout repository
@@ -140,4 +147,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "${{ needs.compare-benchmarks.outputs.benchmarkResultsMD }}" > benchmark-results.md 
-          gh pr create --title "PERF: Title goes here" --body-file benchmark-results.md --base ${{ github.ref }} --head dev/jabovee/scrubdata-fix
+          gh pr create --title '${{ needs.get-perf-fix.outputs.pr-title }}' --body-file benchmark-results.md --base ${{ github.ref }} --head ${{ needs.get-perf-fix.outputs.branch-name }}
