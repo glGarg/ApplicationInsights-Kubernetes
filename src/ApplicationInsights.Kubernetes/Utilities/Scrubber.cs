@@ -17,14 +17,27 @@ namespace Microsoft.ApplicationInsights.Kubernetes
         public const string EmailRegExPattern = @"[a-zA-Z0-9!#$+\-^_~]+(?:\.[a-zA-Z0-9!#$+\-^_~]+)*@(?:[a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,6}";
         public static string ScrubData(string data, char replacementChar)
         {
+            StringBuilder scrubbedData = new StringBuilder();
             Regex rx = new Regex(EmailRegExPattern);
+            int lastMatchEnd = 0;
+
             foreach (Match match in rx.Matches(data))
             {
+                // Append the portion of the string not included in the match
+                scrubbedData.Append(data.Substring(lastMatchEnd, match.Index - lastMatchEnd));
+
+                // Append the scrubbed match
                 string replacementString = new string(replacementChar, match.Value.Length);
-                data = data.Replace(match.Value, replacementString);
+                scrubbedData.Append(replacementString);
+
+                // Update the position after the last match
+                lastMatchEnd = match.Index + match.Length;
             }
 
-            return data;
+            // Append the remainder of the string after the last match
+            scrubbedData.Append(data.Substring(lastMatchEnd));
+
+            return scrubbedData.ToString();
         }
     }
 }
