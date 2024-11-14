@@ -1,3 +1,4 @@
+using System.Globalization;
 using BenchmarkDotNet.Attributes;
 using Microsoft.ApplicationInsights.Kubernetes;
 
@@ -13,6 +14,6 @@ public class ScrubberBenchmark
     [Benchmark]
     public void BenchmarkScrubData()
     {
-        Scrubber.ScrubData(SampleData, ReplacementChar);
+        Scrubber.ScrubData(SampleData, ReplacementChar, CultureInfo.CurrentCulture);
     }
 }
