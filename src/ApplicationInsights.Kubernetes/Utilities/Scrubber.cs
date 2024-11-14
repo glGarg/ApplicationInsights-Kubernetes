@@ -18,13 +18,12 @@ namespace Microsoft.ApplicationInsights.Kubernetes
 
         public static string ScrubData(string data, char replacementChar, CultureInfo culture)
         {
-            List<string> wordList = DisallowedWords
-                .Where(word => culture.Equals(CultureInfo.InvariantCulture) || culture.Equals(word.Culture))
-                .Select(word => word.Text).ToList();
-
-            foreach (string word in wordList)
+            foreach (var word in DisallowedWords)
             {
-                data = data.Replace(word, replacementChar.ToString(), ignoreCase: true, culture);
+                if (culture.Equals(CultureInfo.InvariantCulture) || culture.Equals(word.Culture))
+                {
+                    data = data.Replace(word.Text, replacementChar.ToString(), ignoreCase: true, culture);
+                }
             }
 
             return data;
